@@ -4,61 +4,73 @@ SID: @03086787
 """
 
 class Boggle:
+    # Initialize the Boggle game with a grid and dictionary
     def __init__(self, grid, dictionary):
-        self.grid = grid
-        self.dictionary = set(dictionary)
-        self.solutions = set()
-        self.n = len(grid)
-        self.m = len(grid[0]) if grid else 0  # Handle case when grid is empty
-        self.directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+        self.setGrid(grid)
+        self.setDictionary(dictionary)
+        self.solution = set()  
 
     def setGrid(self, grid):
-        self.grid = grid
-        self.n = len(grid)
-        self.m = len(grid[0]) if grid else 0
+        # Convert grid to uppercase
+        self.grid = [[cell.upper() for cell in row] for row in grid]
+        self.rows = len(self.grid)
+        self.cols = len(self.grid[0]) if self.rows > 0 else 0
+        self.visited = [[False for _ in range(self.cols)] for _ in range(self.rows)]
+        print(f"Grid set: {self.grid}")   # Debug print
 
     def setDictionary(self, dictionary):
-        self.dictionary = set(dictionary)
+        self.dictionary = set(word.upper() for word in dictionary)
+        self.prefix_set = self.build_prefix_set(self.dictionary)
+        print(f"Dictionary set: {self.dictionary}")  
+        print(f"Prefix set: {self.prefix_set}")   # Debug print
+
+    def build_prefix_set(self, dictionary):
+        prefix_set = set()
+        for word in dictionary:
+            for i in range(1, len(word) + 1):
+                prefix_set.add(word[:i])
+        return prefix_set
 
     def getSolution(self):
-        self.solutions = set()
-        for i in range(self.n):
-            for j in range(self.m):
-                self.dfs(i, j, "", set())
-        return sorted(self.solutions)
+        # Find all valid words in the grid and return them sorted
+        self.solution.clear()  
+        self.findAllWords()
+        print(f"Final solution: {self.solution}")   # Debug print
+        return sorted(list(self.solution))
 
-    def dfs(self, i, j, current_word, visited):
-        if (i, j) in visited:
+    def isValidWord(self, word):
+        valid = word in self.dictionary and len(word) >= 3
+        print(f"Checking word: {word}, Valid: {valid}")   # Debug print
+        return valid
+
+    def isValidPrefix(self, prefix):
+        valid = prefix in self.prefix_set
+        print(f"Checking prefix: {prefix}, Valid: {valid}")   # Debug print
+        return valid
+
+    def findAllWords(self):
+        for row in range(self.rows):
+            for col in range(self.cols):
+                self.dfs(row, col, "")
+
+    def dfs(self, row, col, path):
+        if row < 0 or col < 0 or row >= self.rows or col >= self.cols or self.visited[row][col]:
             return
-        
-        current_word += self.grid[i][j]
 
-        # Handle "Qu" and "St"
-        if current_word.endswith("Qu") or current_word.endswith("St"):
-            pass  # Logic for handling these should go here
-        
-        if len(current_word) >= 3 and current_word in self.dictionary:
-            self.solutions.add(current_word)
-        
-        visited.add((i, j))
-        for direction in self.directions:
-            new_i, new_j = i + direction[0], j + direction[1]
-            if 0 <= new_i < self.n and 0 <= new_j < self.m:
-                self.dfs(new_i, new_j, current_word, visited.copy())
-        
-        visited.remove((i, j))
+        letter = self.grid[row][col]
+        new_path = path + letter
+        print(f"Exploring: {new_path}")   # Debug print
 
+        if not self.isValidPrefix(new_path):
+            return
 
-def main():
-    grid = [["T", "W", "Y", "R"],
-            ["E", "N", "P", "H"], 
-            ["G", "Z", "Qu", "R"], 
-            ["O", "N", "T", "A"]]
-    dictionary = ["art", "ego", "gent", "get", "net", "new", "newt", "prat", "pry", "qua", "quart", "quartz", "rat", "tar", "tarp", "ten", "went", "wet", "arty", "rhr", "not", "quar"]
+        self.visited[row][col] = True
 
-    mygame = Boggle(grid, dictionary)
-    print(mygame.getSolution())
+        if self.isValidWord(new_path):
+            self.solution.add(new_path)
+            print(f"Added to solution: {new_path}")   # Debug print
 
-if __name__ == "__main__":
-    main()
+        for drow, dcol in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
+            self.dfs(row + drow, col + dcol, new_path)
 
+        self.visited[row][col] = False
